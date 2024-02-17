@@ -1,57 +1,88 @@
-import ctranslate2
-import sentencepiece as spm
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+import os
+from flask import Flask, request, jsonify, render_template
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 
-app = FastAPI()
-# Supported languages
-SUPPORTED_LANGUAGES = {"eng_Latn", "fra_Latn", "bam_Latn", "spa_Latn"}  # Assuming ISO codes
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('postgresql://postgres:QyWpyhVBm4ntqt0@dondb.internal:5433/dondb', 'sqlite:///subscriptions.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
-# Load models (adjust paths as needed)
-ct_model_path = "C:\\Users\\Ari\\D_lina_API\\nllb-200_1.2B_int8_ct2\\ct2-nllb-200-distilled-1.2B-int8"
-sp_model_path = "C:\\Users\\Ari\\D_lina_API\\flores200_sacrebleu_tokenizer_spm.model"
-device = "cpu"  
+class Subscription(db.Model):
+    __tablename__ = 'subscriptions'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(255), nullable=False)
+    order_id = db.Column(db.String(255), unique=True, nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    plan_id = db.Column(db.String(255), nullable=False)
+    pay_token = db.Column(db.String(255), nullable=False)
+    subscription_date = db.Column(db.DateTime, default=datetime.utcnow)
+    enddate = db.Column(db.DateTime, nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
 
-sp = spm.SentencePieceProcessor()
-sp.load(sp_model_path)
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-translator = ctranslate2.Translator(ct_model_path, device)
+@app.route('/subscribe', methods=['POST'])
+def subscribe():
+    data = request.get_json()
+    user_id = data.get('userId')
+    plan_id = data.get('planId')
+    enddate = datetime.strptime(data.get('end_date'), '%d-%B-%Y')
 
-class TranslationRequest(BaseModel):
-    text: str
-    source_language: str
-    target_language: str
+    existing_subscription = Subscription.query.filter_by(user_id=user_id, plan_id=plan_id, is_active=True).first()
 
-@app.post("/translate")
-async def translate(request: TranslationRequest):
-    # Check if the requested languages are supported
-    if request.source_language not in SUPPORTED_LANGUAGES or request.target_language not in SUPPORTED_LANGUAGES:
-        return {"error": "One or more specified languages are not supported"}, 400
+    if existing_subscription:
+        existing_subscription.enddate = enddate
+        db.session.commit()
+        return jsonify({"message": "Subscription updated successfully"}), 201
+    else:
+        new_subscription = Subscription(
+            user_id=user_id,
+            order_id=data.get('orderId'),
+            amount=data.get('amount'),
+            plan_id=plan_id,
+            pay_token=data.get('pay_token'),
+            enddate=enddate,
+            is_active=True
+        )
+        db.session.add(new_subscription)
+        db.session.commit()
+        return jsonify({"message": "Subscription added successfully"}), 201
 
-    try:
-        # Subword the source sentence
-        source_sentence_subworded = sp.encode_as_pieces(request.text.strip())
-        source_sentence_subworded = [request.source_language] + source_sentence_subworded + ["</s>"]
+@app.route('/check_subscription', methods=['POST'])
+def check_subscription():
+    user_id = request.json.get('userId')
+    plan_id = request.json.get('planId')
 
-        # Translation
-        translation_subworded = translator.translate_batch(
-            [source_sentence_subworded], 
-            batch_type="tokens", 
-            max_batch_size=2024, 
-            beam_size=4,
-            target_prefix=[[request.target_language]]
-        )[0].hypotheses[0]
+    subscription = Subscription.query.filter(Subscription.user_id == user_id, Subscription.plan_id == plan_id, Subscription.is_active == True, Subscription.enddate >= datetime.utcnow()).first()
 
-        if request.target_language in translation_subworded:
-            translation_subworded.remove(request.target_language)
+    if subscription:
+        return jsonify({"is_subscribed": True, "enddate": subscription.enddate.strftime('%Y-%m-%d')}), 201
+    else:
+        return jsonify({"is_subscribed": False}), 404
 
-        # Desubword the target sentence
-        translation = sp.decode(translation_subworded)
+@app.route('/delete_subscription/<int:subscription_id>', methods=['POST'])
+def delete_subscription(subscription_id):
+    subscription = Subscription.query.get(subscription_id)
+    if subscription:
+        db.session.delete(subscription)
+        db.session.commit()
+        return jsonify({'message': 'Subscription deleted successfully'}), 200
+    else:
+        return jsonify({'message': 'Subscription not found'}), 404
 
-        return {"translated_text": translation}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+@app.route('/subscribers/list', methods=['GET'])
+def list_subscribers_html():
+    all_subscriptions = Subscription.query.filter(Subscription.is_active == True).all()
+    return render_template('subscribers.html', subscriptions=all_subscriptions)
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+def initialize_db():
+    with app.app_context():
+        db.create_all()
+
+if __name__ == '__main__':
+    initialize_db()
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
