@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('postgresql://postgres:QyWpyhVBm4ntqt0@dondb.internal:5433/dondb', 'sqlite:///subscriptions.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///subscriptions.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
