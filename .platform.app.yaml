@@ -1,16 +1,29 @@
+# The name of this app. Must be unique within a project.
 name: app
-type: python:3.9  # Adjust the Python version as necessary
-build:
-    flavor: none
+
+# The runtime the application uses. This specifies the base container image.
+type: 'python:3.12'  # Adjust based on the version you wish to use
+
+# Define writable directories. Adjust according to your application's needs.
+mounts:
+  '/tmp':  # Flask typically uses /tmp for temporary file storage
+    source: local
+    source_path: tmp
+
+# The size of the persistent disk of the application (in MB).
+disk: 2048
+
 hooks:
+    # Commands to run during the build process
     build: |
-      pip install -r requirements.txt  # Install dependencies
-relationships:
-    database: "mysqldb:mysql"  # Define the relationship to a MySQL service, if needed
-disk: 1024  # Disk size in MB
+      pip install -r requirements.txt  # Adjust if you're using pipenv or another package manager
+
 web:
-    commands:
-        start: "flask run --host=0.0.0.0 --port=$PORT"
-runtime:
-    extensions:
-        - pdo_mysql  # Example, adjust according to your needs
+  # Command to start your Flask application
+  commands: 
+    start: "flask run --host=0.0.0.0 --port=$PORT"
+
+# Environment variables (if needed)
+variables:
+    python:
+      FLASK_ENV: 'production'  # Ensures Flask runs in production mode
