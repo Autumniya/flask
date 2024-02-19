@@ -1,1 +1,1 @@
-b
+from app import app
