@@ -1,15 +1,13 @@
 import os
 from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
-from redis import Redis
 from datetime import datetime
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://default:B8bPQYm9vEuj@ep-green-term-a4aolss4.us-east-1.aws.neon.tech:5432/verceldb?sslmode=require'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-# Configure Redis
-redis_client = Redis(host='redis-12217.c327.europe-west1-2.gce.cloud.redislabs.com', port=12217, password='DonniyaMali223', decode_responses=True)  # Adjust for your Redis setup
+
 class Subscription(db.Model):
     __tablename__ = 'subscriptions'
     id = db.Column(db.Integer, primary_key=True)
@@ -43,9 +41,6 @@ def subscribe():
     if existing_subscription:
         existing_subscription.enddate = enddate
         db.session.commit()
-        # Use a combination of userId and planId as the Redis key
-        redis_key = f"{user_id}:{plan_id}:{enddate}"
-        redis_client.set(redis_key, 'active')
         return jsonify({"message": "Subscription updated successfully"}), 201
     else:
         new_subscription = Subscription(
@@ -59,37 +54,19 @@ def subscribe():
         )
         db.session.add(new_subscription)
         db.session.commit()
-        redis_key = f"{user_id}:{plan_id}:{enddate}"
-        redis_client.set(redis_key, 'active')
         return jsonify({"message": "Subscription added successfully"}), 201
 
 @app.route('/check_subscription', methods=['POST'])
 def check_subscription():
     user_id = request.json.get('userId')
     plan_id = request.json.get('planId')
-    enddate = request.json.get('end_date')
 
-    # Use the combination of userId and planId to check the subscription status in Redis
-    redis_key = f"{user_id}:{plan_id}:{enddate}"
-    status = redis_client.get(redis_key)
+    subscription = Subscription.query.filter(Subscription.user_id == user_id, Subscription.plan_id == plan_id, Subscription.is_active == True, Subscription.enddate >= datetime.utcnow()).first()
 
-    if status == 'active':
-        # If found in Redis cache, return the cached status without querying the database
-        # Assume Redis also stores the enddate or fetch it from DB if necessary
-        enddate = redis_client.get(f"{redis_key}:enddate")  # This might require storing the end date in Redis as well
-        if not enddate:  # If end_date is not found in Redis, consider fetching it from the database
-            subscription = Subscription.query.filter_by(user_id=user_id, plan_id=plan_id, is_active=True).first()
-            enddate = subscription.enddate.strftime('%Y-%m-%d') if subscription else None
-        return jsonify({"is_subscribed": True, "enddate": enddate}), 201
+    if subscription:
+        return jsonify({"is_subscribed": True, "enddate": subscription.enddate.strftime('%Y-%m-%d')}), 201
     else:
-        # If not found in Redis, query the database and update the Redis cache accordingly
-        subscription = Subscription.query.filter(Subscription.user_id == user_id, Subscription.plan_id == plan_id, Subscription.is_active == True, Subscription.enddate >= datetime.utcnow()).first()
-        if subscription:
-            redis_client.set(redis_key, 'active')  # Refresh or set cache entry
-            redis_client.set(f"{redis_key}:enddate", subscription.enddate.strftime('%Y-%m-%d'))  # Optionally cache the end date as well
-            return jsonify({"is_subscribed": True, "enddate": subscription.enddate.strftime('%Y-%m-%d')}), 200
-        else:
-            return jsonify({"is_subscribed": False}), 404
+        return jsonify({"is_subscribed": False}), 404
 
 @app.route('/delete_subscription/<int:subscription_id>', methods=['POST'])
 def delete_subscription(subscription_id):
