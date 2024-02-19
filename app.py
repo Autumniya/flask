@@ -19,6 +19,11 @@ class Subscription(db.Model):
     subscription_date = db.Column(db.DateTime, default=datetime.utcnow)
     enddate = db.Column(db.DateTime, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
+    
+# Database initialization function
+def initialize_db():
+    with app.app_context():
+        db.create_all()
 
 @app.route('/')
 def index():
@@ -78,6 +83,4 @@ def list_subscribers_html():
     all_subscriptions = Subscription.query.filter(Subscription.is_active == True).all()
     return render_template('subscribers.html', subscriptions=all_subscriptions)
 
-@app.before_first_request
-def initialize_db():
-    db.create_all()
+initialize_db()
