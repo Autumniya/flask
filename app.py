@@ -1,6 +1,7 @@
 import os
 from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
+from redis import Redis
 from datetime import datetime
 
 app = Flask(__name__)
