@@ -1,12 +1,17 @@
 import os
 from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
+from flask_caching import Cache
 from datetime import datetime
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://default:B8bPQYm9vEuj@ep-green-term-a4aolss4.us-east-1.aws.neon.tech:5432/verceldb?sslmode=require'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
+# Configure Flask-Caching
+app.config['CACHE_TYPE'] = 'simple'  # For production, consider 'filesystem' and set CACHE_DIR
+cache = Cache(app)
 
 class Subscription(db.Model):
     __tablename__ = 'subscriptions'
@@ -57,6 +62,7 @@ def subscribe():
         return jsonify({"message": "Subscription added successfully"}), 201
 
 @app.route('/check_subscription', methods=['POST'])
+@cache.cached(timeout=50, key_prefix='check_subscription_')
 def check_subscription():
     user_id = request.json.get('userId')
     plan_id = request.json.get('planId')
