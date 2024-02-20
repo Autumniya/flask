@@ -33,8 +33,12 @@ def initialize_db():
 @app.route('/')
 def index():
     return render_template('index.html')
-
-@app.route('/subscribe', methods=['POST'])
+    
+@routes.route('/favicon.ico')
+def favicon() -> Response:
+    return redirect(url_for('static', filename='image/favicon.ico'), code=302)
+    
+@app.route('/subscribe', methods=['GET', 'POST'])
 def subscribe():
     data = request.get_json()
     user_id = data.get('userId')
@@ -61,7 +65,7 @@ def subscribe():
         db.session.commit()
         return jsonify({"message": "Subscription added successfully"}), 201
 
-@app.route('/check_subscription', methods=['POST'])
+@app.route('/check_subscription', methods=['GET', 'POST'])
 @cache.cached(timeout=50, key_prefix='check_subscription_')
 def check_subscription():
     user_id = request.json.get('userId')
