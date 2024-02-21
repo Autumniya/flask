@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from flask import Flask, request, jsonify, render_template, redirect, url_for
+from flask import Flask, request, jsonify, render_template
 from flask_caching import Cache
 from vercel_postgres import sql as vercel_sql
 
@@ -13,10 +13,6 @@ cache = Cache(app)
 @app.route('/')
 def index():
     return render_template('index.html')
-
-@app.route('/favicon.ico')
-def favicon():
-    return redirect(url_for('static', filename='image/favicon.ico'), code=302)
 
 @app.route('/subscribe', methods=['GET', 'POST'])
 def subscribe():
