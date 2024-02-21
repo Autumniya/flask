@@ -91,4 +91,4 @@ def list_subscribers_html():
 
 if __name__ == '__main__':
     initialize_db()
-    app.run(debug=True)
+    app.run(port=int(os.getenv("PORT", default=5000)))
