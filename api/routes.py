@@ -34,10 +34,6 @@ def initialize_db():
 def index():
     return render_template('index.html')
     
-@routes.route('/favicon.ico')
-def favicon() -> Response:
-    return redirect(url_for('static', filename='image/favicon.ico'), code=302)
-    
 @app.route('/subscribe', methods=['GET', 'POST'])
 def subscribe():
     data = request.get_json()
