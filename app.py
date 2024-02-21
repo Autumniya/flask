@@ -34,7 +34,7 @@ def initialize_db():
 def index():
     return render_template('index.html')
     
-@app.route('/subscribe', methods=['GET', 'POST'])
+@app.route('/subscribe', methods=['POST'])
 def subscribe():
     data = request.get_json()
     user_id = data.get('userId')
@@ -61,7 +61,7 @@ def subscribe():
         db.session.commit()
         return jsonify({"message": "Subscription added successfully"}), 201
 
-@app.route('/check_subscription', methods=['GET', 'POST'])
+@app.route('/check_subscription', methods=['POST'])
 @cache.cached(timeout=50, key_prefix='check_subscription_')
 def check_subscription():
     user_id = request.json.get('userId')
