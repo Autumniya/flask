@@ -1,4 +1,4 @@
-import os
+import os, logging
 from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
@@ -30,6 +30,11 @@ def initialize_db():
     with app.app_context():
         db.create_all()
 
+@app.before_request
+def before_request_logging():
+    app.logger.debug("Request Headers: %s", request.headers)
+    app.logger.debug("Request Body: %s", request.get_data(as_text=True))
+    
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -91,4 +96,5 @@ def list_subscribers_html():
 
 if __name__ == '__main__':
     initialize_db()
+    logging.basicConfig(level=logging.DEBUG)
     app.run(port=int(os.getenv("PORT", default=5000)))
