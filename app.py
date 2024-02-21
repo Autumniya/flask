@@ -1,4 +1,4 @@
-import os, logging
+import os
 from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
@@ -29,11 +29,6 @@ class Subscription(db.Model):
 def initialize_db():
     with app.app_context():
         db.create_all()
-
-@app.before_request
-def before_request_logging():
-    app.logger.debug("Request Headers: %s", request.headers)
-    app.logger.debug("Request Body: %s", request.get_data(as_text=True))
     
 @app.route('/')
 def index():
@@ -44,7 +39,7 @@ def subscribe():
     data = request.get_json()
     user_id = data.get('userId')
     plan_id = data.get('planId')
-    enddate = datetime.strptime(data.get('end_date'), '%d-%B-%Y')
+    enddate = datetime.strptime(data.get('end_date'), '%d-%m-%Y')
 
     existing_subscription = Subscription.query.filter_by(user_id=user_id, plan_id=plan_id, is_active=True).first()
 
@@ -96,5 +91,4 @@ def list_subscribers_html():
 
 if __name__ == '__main__':
     initialize_db()
-    logging.basicConfig(level=logging.DEBUG)
     app.run(port=int(os.getenv("PORT", default=5000)))
