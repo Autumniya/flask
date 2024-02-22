@@ -89,6 +89,4 @@ def list_subscribers_html():
     all_subscriptions = Subscription.query.filter(Subscription.is_active == True).all()
     return render_template('subscribers.html', subscriptions=all_subscriptions)
 
-if __name__ == '__main__':
-    initialize_db()
-    app.run(port=int(os.getenv("PORT", default=5000)))
+initialize_db()
