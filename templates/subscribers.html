@@ -25,7 +25,7 @@
                 {% for subscription in subscriptions %}
                 <tr>
                     <td>{{ subscription.user_id }}</td> <!-- Display User ID -->
-                    <td>{{ subscription.order_id }}</td>
+                    <td>{{ subscription.orderid }}</td>
                     <!-- Updated to include hours and minutes -->
                     <td>{{ subscription.subscription_date.strftime('%d-%B-%Y %H:%M') }}</td>
                     <td>{{ subscription.enddate.strftime('%d-%B-%Y %H:%M') if subscription.enddate else 'N/A' }}</td>
