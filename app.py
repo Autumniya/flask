@@ -17,7 +17,7 @@ class Subscription(db.Model):
     __tablename__ = 'subscriptions'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(255), nullable=False)
-    order_id = db.Column(db.String(255), unique=True, nullable=False)
+    orderid = db.Column(db.String(255), unique=True, nullable=False)
     amount = db.Column(db.Float, nullable=False)
     plan_id = db.Column(db.String(255), nullable=False)
     pay_token = db.Column(db.String(255), nullable=False)
@@ -50,7 +50,7 @@ def subscribe():
     else:
         new_subscription = Subscription(
             user_id=user_id,
-            order_id=data.get('orderId'),
+            orderid=data.get('order_id'),
             amount=data.get('amount'),
             plan_id=plan_id,
             pay_token=data.get('pay_token'),
