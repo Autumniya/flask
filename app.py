@@ -5,7 +5,7 @@ from flask_caching import Cache
 from datetime import datetime
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:56dB*fEg5EDcbeDAE1cFgeC1fCEdc-bC@monorail.proxy.rlwy.net:17389/railway'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:6gfc2g2a1cEgg1cBB6CBA2a6Cf4-1AAf@viaduct.proxy.rlwy.net:58170/railway'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
